@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Vesktop
+Exec=/opt/Vesktop/run.sh %U
+Terminal=false
+Type=Application
+Icon=vencorddesktop
+StartupWMClass=VencordDesktop
+GenericName=Internet Messenger
+Categories=Network;
+Keywords=discord;vencord;electron;chat;

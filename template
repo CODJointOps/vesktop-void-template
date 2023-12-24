@@ -1,0 +1,28 @@
+# Template file for 'Vesktop'
+pkgname=vesktop
+version=0.4.4
+revision=1
+archs="x86_64"
+maintainer="Wizzard <rich@bandaholics.cash>"
+short_desc="Vesktop - Your Short Description"
+homepage="https://github.com/Vencord/Vesktop"
+license="LicenseType"
+distfiles="https://github.com/Vencord/Vesktop/releases/download/v${version}/VencordDesktop_${version}_amd64.deb"
+checksum=b08f769ee19d32e27301ace10f0034594e364a1cf5bad4260d401d1eea3accaa
+hostmakedepends="tar xz"
+
+do_extract() {
+    ar x ${XBPS_SRCDISTDIR}/${pkgname}-${version}/VencordDesktop_${version}_amd64.deb
+    tar xf data.tar.xz -C ${wrksrc}
+}
+
+do_install() {
+    vmkdir /usr/share
+    vmkdir /opt/Vesktop
+
+    # Copy the files and directories
+    vcopy usr/share/* /usr/share/
+    vcopy opt/Vesktop/* /opt/Vesktop/
+}
+
+# Any other necessary functions or variables
