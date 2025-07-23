@@ -21,7 +21,7 @@ jobs:
         run: |
           RELEASES=$(curl -s -H "User-Agent: gitea-actions" https://api.github.com/repos/Vencord/Vesktop/releases?per_page=50)
           LATEST=$(echo "$RELEASES" | jq '[.[] | select(.tag_name | test("^v\\\\d+\\\\.\\\\d+\\\\.\\\\d+$"))] | sort_by(.published_at) | reverse | .[0]')
-          if [[ -z "$LATEST" ]]; then
+          if [[ -z "$LATEST" ]] || [[ "$LATEST" == "null" ]]; then
             echo "No stable release found"
             exit 0
           fi
