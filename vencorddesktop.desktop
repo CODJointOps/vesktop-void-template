@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Vesktop
-Exec=/opt/Vesktop/run.sh %U
+Exec=/opt/Vesktop/vesktop
 Terminal=false
 Type=Application
 Icon=vencorddesktop
