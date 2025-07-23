@@ -20,18 +20,17 @@ jobs:
         id: get_release
         run: |
           RELEASES=$(curl -s -H "User-Agent: gitea-actions" https://api.github.com/repos/Vencord/Vesktop/releases?per_page=50)
-          LATEST=$(echo "$RELEASES" | jq '[.[] | select(.tag_name | test("^v\\\\d+\\\\.\\\\d+\\\\.\\\\d+$"))] | sort_by(.published_at) | reverse | .[0]')
-          if [[ -z "$LATEST" ]] || [[ "$LATEST" == "null" ]]; then
+          VERSION=$(echo "$RELEASES" | jq -r '[.[] | select(.tag_name | test("^v?\\d+\\.\\d+\\.\\d+$"))] | sort_by(.published_at) | reverse | .[0].tag_name' || echo "")
+          if [[ -z "$VERSION" ]]; then
             echo "No stable release found"
             exit 0
           fi
-          TAG=$(echo "$LATEST" | jq -r '.tag_name')
-          VERSION=${TAG#v}
-          DEB_URL=$(echo "$LATEST" | jq -r ".assets[] | select(.name == \"vesktop_${VERSION}_amd64.deb\") | .browser_download_url")
+          DEB_URL=$(echo "$RELEASES" | jq -r "[.[] | select(.tag_name == \"$VERSION\")] | .[0].assets[] | select(.name | test(\"vesktop_.*_amd64\\\\.deb$\")) | .browser_download_url" || echo "")
           if [[ -z "$DEB_URL" ]]; then
             echo "No .deb found"
             exit 0
           fi
+          VERSION=${VERSION#v} # Remove 'v' prefix if present
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "deb_url=$DEB_URL" >> $GITHUB_OUTPUT
 
@@ -59,7 +58,7 @@ jobs:
       - name: Commit and Push
         if: steps.get_release.outputs.version && steps.get_release.outputs.version != steps.check_version.outputs.current_version
         run: |
-          git config user.name "Wizzard"
+         git config user.name "Wizzard"
           git config user.email "rich@bandaholics.cash"
           git add template
           git commit -m "Update to v${{ steps.get_release.outputs.version }} [auto]"
