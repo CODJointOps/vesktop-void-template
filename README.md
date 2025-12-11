@@ -1,3 +1,8 @@
-# vesktop-void-template
+## Usage
 
-This repository provides a template for installing Vesktop on Void Linux. It's designed to simplify the process of setting up Vesktop, ensuring compatibility and ease of use on Void Linux environments.
+clone this repo into your `void-packages/srcpkgs` folder with the following commands:
+
+```bash
+cd void-packages/srcpkgs
+git clone https://git.deadzone.lol/Wizzard/vesktop-void-template vesktop
+```
