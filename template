@@ -1,6 +1,6 @@
 pkgname=vesktop
 version=1.6.5
-revision=1
+revision=2
 archs="x86_64* aarch64*"
 short_desc="Custom Discord desktop client"
 maintainer="Wizzard <rich@bandaholics.cash>"
