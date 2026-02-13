@@ -19,20 +19,31 @@ jobs:
       - name: Fetch Latest Stable Release
         id: get_release
         run: |
-          RELEASES=$(curl -s -H "User-Agent: gitea-actions" https://api.github.com/repos/Vencord/Vesktop/releases?per_page=50)
-          VERSION=$(echo "$RELEASES" | jq -r '[.[] | select(.tag_name | test("^v?\\d+\\.\\d+\\.\\d+$"))] | sort_by(.published_at) | reverse | .[0].tag_name' || echo "")
-          if [[ -z "$VERSION" ]]; then
+          set -euo pipefail
+          RELEASES=$(curl -fsSL -H "User-Agent: gitea-actions" https://api.github.com/repos/Vencord/Vesktop/releases?per_page=50)
+          VERSION_TAG=$(echo "$RELEASES" | jq -r '[.[] | select(.tag_name | test("^v?\\d+\\.\\d+\\.\\d+$"))] | sort_by(.published_at) | reverse | .[0].tag_name // empty')
+          if [[ -z "$VERSION_TAG" ]]; then
             echo "No stable release found"
             exit 0
           fi
-          DEB_URL=$(echo "$RELEASES" | jq -r "[.[] | select(.tag_name == \"$VERSION\")] | .[0].assets[] | select(.name | test(\"vesktop_.*_amd64\\\\.deb$\")) | .browser_download_url" || echo "")
-          if [[ -z "$DEB_URL" ]]; then
-            echo "No .deb found"
+
+          RELEASE=$(echo "$RELEASES" | jq -c --arg tag "$VERSION_TAG" '[.[] | select(.tag_name == $tag)] | .[0]')
+          if [[ "$RELEASE" == "null" || -z "$RELEASE" ]]; then
+            echo "Release metadata missing for $VERSION_TAG"
             exit 0
           fi
-          VERSION=${VERSION#v} # Remove 'v' prefix if present
+
+          AMD64_DEB_URL=$(echo "$RELEASE" | jq -r '[.assets[] | select(.name | test("^vesktop_.*_amd64\\.deb$"))][0].browser_download_url // empty')
+          ARM64_DEB_URL=$(echo "$RELEASE" | jq -r '[.assets[] | select(.name | test("^vesktop_.*_arm64\\.deb$"))][0].browser_download_url // empty')
+          if [[ -z "$AMD64_DEB_URL" || -z "$ARM64_DEB_URL" ]]; then
+            echo "Missing amd64 or arm64 .deb for $VERSION_TAG"
+            exit 0
+          fi
+
+          VERSION=${VERSION_TAG#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "deb_url=$DEB_URL" >> $GITHUB_OUTPUT
+          echo "amd64_deb_url=$AMD64_DEB_URL" >> $GITHUB_OUTPUT
+          echo "arm64_deb_url=$ARM64_DEB_URL" >> $GITHUB_OUTPUT
 
       - name: Read Current Version
         if: steps.get_release.outputs.version
@@ -45,21 +56,26 @@ jobs:
         if: steps.get_release.outputs.version && steps.get_release.outputs.version != steps.check_version.outputs.current_version
         id: download
         run: |
-          curl -Lo vesktop.deb "${{ steps.get_release.outputs.deb_url }}"
-          SHA256=$(sha256sum vesktop.deb | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          curl -fsSL -o vesktop-amd64.deb "${{ steps.get_release.outputs.amd64_deb_url }}"
+          curl -fsSL -o vesktop-arm64.deb "${{ steps.get_release.outputs.arm64_deb_url }}"
+          AMD64_SHA256=$(sha256sum vesktop-amd64.deb | awk '{print $1}')
+          ARM64_SHA256=$(sha256sum vesktop-arm64.deb | awk '{print $1}')
+          echo "amd64_sha256=$AMD64_SHA256" >> $GITHUB_OUTPUT
+          echo "arm64_sha256=$ARM64_SHA256" >> $GITHUB_OUTPUT
 
       - name: Update Template
         if: steps.get_release.outputs.version && steps.get_release.outputs.version != steps.check_version.outputs.current_version
         run: |
           sed -i "s/^version=.*/version=${{ steps.get_release.outputs.version }}/" template
           sed -i "s/^revision=.*/revision=1/" template
-          sed -i "s/^checksum=.*/checksum=${{ steps.download.outputs.sha256 }}/" template
+          sed -i "s/^amd64_checksum=.*/amd64_checksum=${{ steps.download.outputs.amd64_sha256 }}/" template
+          sed -i "s/^arm64_checksum=.*/arm64_checksum=${{ steps.download.outputs.arm64_sha256 }}/" template
 
       - name: Commit and Push
         if: steps.get_release.outputs.version && steps.get_release.outputs.version != steps.check_version.outputs.current_version
         run: |
-         git config user.name "Wizzard"
+          git config user.name "Wizzard"
           git config user.email "rich@bandaholics.cash"
           git add template
           git commit -m "Update to v${{ steps.get_release.outputs.version }} [auto]"

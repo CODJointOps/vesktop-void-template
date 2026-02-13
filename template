@@ -6,13 +6,33 @@ short_desc="Custom Discord desktop client"
 maintainer="Wizzard <rich@bandaholics.cash>"
 license="GPL-3.0-or-later"
 homepage="https://github.com/Vencord/Vesktop"
-distfiles="https://github.com/Vencord/Vesktop/releases/download/v${version}/vesktop_${version}_amd64.deb"
-checksum=2d4c97abe4810703561d59c63cb12b1926f591fe1fe2bf9e914db66c6cc31cf5
+amd64_checksum=2d4c97abe4810703561d59c63cb12b1926f591fe1fe2bf9e914db66c6cc31cf5
+arm64_checksum=3ba8e5b14d4eafa641f407c8720fb0ec489a9ee6276423f98e967218b5d6cd38
+
+_deb_arch=
+_deb_checksum=
+
+case "${XBPS_TARGET_MACHINE}" in
+	x86_64*)
+		_deb_arch=amd64
+		_deb_checksum="${amd64_checksum}"
+		;;
+	aarch64*)
+		_deb_arch=arm64
+		_deb_checksum="${arm64_checksum}"
+		;;
+	*)
+		broken="Unsupported architecture: ${XBPS_TARGET_MACHINE}"
+		;;
+esac
+
+distfiles="https://github.com/Vencord/Vesktop/releases/download/v${version}/vesktop_${version}_${_deb_arch}.deb"
+checksum="${_deb_checksum}"
 hostmakedepends="binutils tar xz"
 depends="gtk+3 libnotify nss libXScrnSaver libXtst xdg-utils at-spi2-core util-linux-libs libsecret"
 
 do_extract() {
-	ar x ${XBPS_SRCDISTDIR}/${pkgname}-${version}/vesktop_${version}_amd64.deb
+	ar x ${XBPS_SRCDISTDIR}/${pkgname}-${version}/vesktop_${version}_${_deb_arch}.deb
 	mkdir -p ${wrksrc}
 	tar xf data.tar.xz -C ${wrksrc}
 }
