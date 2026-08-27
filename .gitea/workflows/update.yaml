@@ -21,7 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           RELEASES=$(curl -fsSL -H "User-Agent: gitea-actions" https://api.github.com/repos/Vencord/Vesktop/releases?per_page=50)
-          VERSION_TAG=$(echo "$RELEASES" | jq -r '[.[] | select(.tag_name | test("^v?\\d+\\.\\d+\\.\\d+$"))] | sort_by(.published_at) | reverse | .[0].tag_name // empty')
+          VERSION_TAG=$(echo "$RELEASES" | jq -r '[.[] | select(.draft == false and .prerelease == false) | select(.tag_name | test("^v?\\d+\\.\\d+\\.\\d+$"))] | sort_by((.tag_name | sub("^[^0-9]*";"") | split("-") | .[0] | [scan("[0-9]+")] | map(tonumber)), (.tag_name | sub("^[^0-9]*";"") | split("-") | .[1:] | join(".") | [scan("[0-9]+")] | map(tonumber)), .published_at) | last | .tag_name // empty')
           if [[ -z "$VERSION_TAG" ]]; then
             echo "No stable release found"
             exit 0
